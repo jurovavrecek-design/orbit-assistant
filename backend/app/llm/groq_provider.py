@@ -12,40 +12,88 @@ class GroqProvider(BaseLLMProvider):
             temperature=0
         )
 
+    def rerank(self, question, docs):
+
+        chunks = []
+
+        for i, doc in enumerate(docs):
+
+            text = doc.page_content[:1000]
+
+            chunks.append(
+                f"""
+Chunk {i}
+
+Source:
+{doc.metadata.get("source")}
+
+Content:
+{text}
+"""
+            )
+
+        prompt = f"""
+Question:
+
+{question}
+
+Below are document chunks.
+
+Select the 5 most relevant chunks.
+
+Return ONLY chunk numbers separated by commas.
+
+Documents:
+
+{"".join(chunks)}
+"""
+
+        response = self.llm.invoke(prompt)
+
+        try:
+
+            indexes = [
+                int(x.strip())
+                for x in response.content.split(",")
+            ]
+
+        except:
+
+            indexes = list(range(5))
+
+        return [
+            docs[i]
+            for i in indexes
+            if i < len(docs)
+        ]
+
     def build_prompt(self, question, context):
 
         return f"""
 You are ORBIT Assistant.
 
-The CONTEXT below contains excerpts from ORBIT documentation.
+Use ONLY the supplied documentation.
 
-Your task is to answer using ONLY the supplied context.
+If documentation does not contain the answer, say so.
 
-Rules:
+Never invent:
 
-- Never say "No exact documentation was found" if the context contains relevant information.
-- Summarize information found in the context.
-- Do not look for explicit definitions.
-- Infer meaning from the available documentation.
-- Combine information from multiple pages when necessary.
-- Use bullet points.
-- Answer in the same language as the question.
-- Do not use general knowledge unless absolutely necessary.
-- Only if the context is completely unrelated to the question, state that no relevant ORBIT documentation was found.
-- Never invent field names, IDs, dates or business processes.
-- Ignore quiz answers and multiple choice options.
-- Use factual statements only.
-- Do not infer information from incorrect answers in knowledge checks.
+- processes
+- field names
+- IDs
+- dates
 
-CONTEXT:
+Use bullet points.
+
+Answer in the same language as the question.
+
+Documentation:
 
 {context}
 
-QUESTION:
+Question:
 
 {question}
-
-ANSWER:
 """
 
     def ask(self, question, context=""):

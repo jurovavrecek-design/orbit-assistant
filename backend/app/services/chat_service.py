@@ -15,16 +15,21 @@ class ChatService:
             question
         )
 
+        docs = self.llm.rerank(
+            question,
+            docs
+        )
+
         print()
-        print("========== RETRIEVED ==========")
+        print("========== FINAL RETRIEVED ==========")
 
         for doc in docs:
 
             print(doc.metadata)
-            print()
-            print(doc.page_content[:1500])
-            print()
-            print("--------------------------------------------")
+
+            print(doc.page_content[:500])
+
+            print("--------------------------------")
 
         print("==============================")
         print()
@@ -33,23 +38,10 @@ class ChatService:
 
     def build_context(self, docs):
 
-        context = ""
-
-        for i, doc in enumerate(docs, start=1):
-
-            context += f"""
-    DOCUMENT {i}
-
-    SOURCE:
-    {doc.metadata['source']}
-
-    CONTENT:
-    {doc.page_content}
-
-    ------------------------
-    """
-
-        return context
+        return "\n\n".join(
+            doc.page_content
+            for doc in docs
+        )
 
     def ask(self, question):
 
@@ -60,12 +52,6 @@ class ChatService:
         context = self.build_context(
             docs
         )
-
-        print()
-        print("========== CONTEXT ==========")
-        print(context[:5000])
-        print("=============================")
-        print()
 
         answer = self.llm.ask(
             question,
@@ -83,7 +69,6 @@ class ChatService:
                 source += f" (slide {doc.metadata['slide']})"
 
             if source not in seen:
-
                 seen.add(source)
                 sources.append(source)
 
@@ -103,7 +88,7 @@ class ChatService:
         )
 
         for chunk in self.llm.stream_answer(
-            question,
-            context
+                question,
+                context
         ):
             yield chunk

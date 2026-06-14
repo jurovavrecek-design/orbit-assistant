@@ -31,31 +31,7 @@ class BM25Retriever:
             key=lambda x: x[0]
         )
 
-        results = []
-        seen_titles = set()
-
-        print()
-        print("========== BM25 ==========")
-
-        for score, doc in ranked:
-
-            if score <= 0:
-                continue
-
-            title = doc.page_content.split("\n")[0].strip()
-
-            if title in seen_titles:
-                continue
-
-            seen_titles.add(title)
-
-            print(round(score, 3), doc.metadata)
-
-            results.append(doc)
-
-            if len(results) == k:
-                break
-
-        print("==========================")
-
-        return results
+        return [
+            doc
+            for _, doc in ranked[:k]
+        ]
