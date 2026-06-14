@@ -23,13 +23,19 @@ class ChatService:
         print()
         print("========== FINAL RETRIEVED ==========")
 
-        for doc in docs:
+        if len(docs) == 0:
 
-            print(doc.metadata)
+            print("No relevant documents found.")
 
-            print(doc.page_content[:500])
+        else:
 
-            print("--------------------------------")
+            for doc in docs:
+
+                print(doc.metadata)
+
+                print(doc.page_content[:500])
+
+                print("--------------------------------")
 
         print("==============================")
         print()
@@ -37,6 +43,9 @@ class ChatService:
         return docs
 
     def build_context(self, docs):
+
+        if len(docs) == 0:
+            return ""
 
         return "\n\n".join(
             doc.page_content
@@ -48,6 +57,13 @@ class ChatService:
         docs = self.retrieve_docs(
             question
         )
+
+        if len(docs) == 0:
+
+            return {
+                "answer": "The documentation does not contain the answer.",
+                "sources": []
+            }
 
         context = self.build_context(
             docs
@@ -69,6 +85,7 @@ class ChatService:
                 source += f" (slide {doc.metadata['slide']})"
 
             if source not in seen:
+
                 seen.add(source)
                 sources.append(source)
 
@@ -82,6 +99,11 @@ class ChatService:
         docs = self.retrieve_docs(
             question
         )
+
+        if len(docs) == 0:
+
+            yield "The documentation does not contain the answer."
+            return
 
         context = self.build_context(
             docs

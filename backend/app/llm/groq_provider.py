@@ -18,7 +18,7 @@ class GroqProvider(BaseLLMProvider):
 
         for i, doc in enumerate(docs):
 
-            text = doc.page_content[:1000]
+            text = doc.page_content[:500]
 
             chunks.append(
                 f"""
@@ -29,6 +29,7 @@ Source:
 
 Content:
 {text}
+
 """
             )
 
@@ -37,11 +38,39 @@ Question:
 
 {question}
 
-Below are document chunks.
+Good chunks:
+- directly answer the question
+- contain steps, definitions, or instructions
 
-Select the 5 most relevant chunks.
+Bad chunks:
+- module objectives
+- knowledge checks
+- generic introductions
+- unrelated topics
+
+Select ONLY chunks that directly answer the question.
+
+Ignore generic modules, objectives and unrelated topics.
 
 Return ONLY chunk numbers separated by commas.
+
+Examples:
+
+Question:
+How to create a report?
+
+Good chunk:
+Create Report
+Add Report Filters
+
+Bad chunks:
+Task Management
+Time Allocation
+Medical Interaction
+
+If only one chunk is relevant, return one number.
+
+If no chunk answers the question, return NONE.
 
 Documents:
 
@@ -50,16 +79,27 @@ Documents:
 
         response = self.llm.invoke(prompt)
 
+        response_text = response.content.strip()
+
+        print()
+        print("========== RERANK RESPONSE ==========")
+        print(response_text)
+        print("====================================")
+        print()
+
+        if response_text.upper() == "NONE":
+            return []
+
         try:
 
             indexes = [
                 int(x.strip())
-                for x in response.content.split(",")
+                for x in response_text.split(",")
             ]
 
         except:
 
-            indexes = list(range(5))
+            indexes = list(range(3))
 
         return [
             docs[i]
@@ -72,20 +112,19 @@ Documents:
         return f"""
 You are ORBIT Assistant.
 
-Use ONLY the supplied documentation.
+Use ONLY information contained in the documentation.
 
-If documentation does not contain the answer, say so.
+Do not infer business processes.
 
-Never invent:
+Do not use general knowledge.
 
-- processes
-- field names
-- IDs
-- dates
+If the answer is not present in the documentation, explicitly say:
 
-Use bullet points.
+"The documentation does not contain the answer."
 
 Answer in the same language as the question.
+
+Use concise bullet points.
 
 Documentation:
 
