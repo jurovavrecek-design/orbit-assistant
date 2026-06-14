@@ -13,3 +13,6 @@ python-pptx
 python-dotenv
 
 rank-bm25
+sentence-transformers
+torch
+transformers
