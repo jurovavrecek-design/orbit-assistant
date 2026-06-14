@@ -1,20 +1,23 @@
 from langchain_chroma import Chroma
-from langchain_ollama import OllamaEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 
 class ChromaStore:
 
     def __init__(self):
 
-        embeddings = OllamaEmbeddings(
-            model="nomic-embed-text",
-            base_url="http://host.docker.internal:11434"
+        embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
 
         self.db = Chroma(
             persist_directory="./chroma_db",
             embedding_function=embeddings
         )
+
+    def add_documents(self, docs):
+
+        self.db.add_documents(docs)
 
     def similarity_search(self, question):
 

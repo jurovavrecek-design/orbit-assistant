@@ -28,25 +28,11 @@ def main():
 
     store.add_documents(docs)
 
-    #
-    # Build hybrid BM25 + Vector retriever
-    #
-    print("Building hybrid retriever...")  
+    print("Building hybrid retriever...")
 
     print("\nDocuments indexed successfully!")
-
     print("\nDone.")
 
-for d in docs:
 
-    if (
-        d.metadata.get("type") == "pptx"
-        and "Recording a Call in ORBIT Online" in d.page_content
-    ):
-
-        print("FOUND")
-        print(d.metadata)
-        print(d.page_content[:1000])
-        
 if __name__ == "__main__":
     main()

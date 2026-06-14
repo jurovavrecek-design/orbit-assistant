@@ -1,4 +1,4 @@
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 
 from app.llm.base_provider import BaseLLMProvider
 
@@ -7,9 +7,8 @@ class OllamaProvider(BaseLLMProvider):
 
     def __init__(self):
 
-        self.llm = ChatOllama(
-            model="qwen3:8b",
-            base_url="http://host.docker.internal:11434",
+        self.llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
             temperature=0
         )
 
@@ -29,11 +28,12 @@ If the answer exists in the documentation:
 If the answer is only partially found:
 
 - combine documentation and general knowledge
-- clearly distinguish both
+- clearly distinguish documented information from general knowledge
 
 If the answer is not found:
 
-- explicitly say no exact ORBIT documentation was found
+- explicitly say that no exact ORBIT documentation was found
+- answer using general knowledge
 
 Never invent:
 
@@ -44,7 +44,7 @@ Never invent:
 
 Answer in the same language as the question.
 
-Use markdown.
+Use markdown formatting.
 
 Context:
 
