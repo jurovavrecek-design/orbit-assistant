@@ -1,6 +1,15 @@
 import pickle
+import re
 
 from rank_bm25 import BM25Okapi
+
+
+def tokenize(text):
+
+    return re.findall(
+        r"\b[a-z0-9]+\b",
+        text.lower()
+    )
 
 
 class BM25Retriever:
@@ -17,9 +26,32 @@ class BM25Retriever:
             self.tokenized_docs
         )
 
-    def search(self, question, k=20):
+    def search(self, question, k=50):
 
-        query_tokens = question.lower().split()
+        q = question.lower()
+
+        #
+        # query expansion
+        #
+
+        synonyms = {
+            "create call": "record call",
+            "new call": "record call",
+            "log call": "record call",
+            "create account": "new account",
+            "anf": "service provider",
+            "edetail": "edetailing"
+        }
+
+        for key, value in synonyms.items():
+
+            if key in q:
+                q += " " + value
+
+        if "call" in q:
+            q += " sales call medical interaction"
+
+        query_tokens = tokenize(q)
 
         scores = self.bm25.get_scores(
             query_tokens
@@ -30,6 +62,16 @@ class BM25Retriever:
             reverse=True,
             key=lambda x: x[0]
         )
+
+        print()
+        print("========== BM25 ==========")
+
+        for score, doc in ranked[:20]:
+
+            print(round(score, 2), doc.metadata)
+
+        print("==========================")
+        print()
 
         return [
             doc

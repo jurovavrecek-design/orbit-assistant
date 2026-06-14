@@ -13,10 +13,18 @@ class ChatService:
 
     def retrieve_docs(self, question):
 
+        #
+        # BM25
+        #
+
         docs = self.retriever.search(
             question,
             k=50
         )
+
+        #
+        # Semantic rerank
+        #
 
         docs = self.reranker.rerank(
             question,
@@ -85,7 +93,7 @@ class ChatService:
         context = self.build_context(docs)
 
         for chunk in self.llm.stream_answer(
-            question,
-            context
+                question,
+                context
         ):
             yield chunk
