@@ -1,6 +1,15 @@
 import pickle
+import re
 
 from app.ingest.document_ingestor import DocumentIngestor
+
+
+def tokenize(text):
+
+    return re.findall(
+        r"\b[a-z0-9]+\b",
+        text.lower()
+    )
 
 
 def main():
@@ -24,7 +33,7 @@ def main():
     print("\nTokenizing documents...")
 
     tokenized_docs = [
-        doc.page_content.lower().split()
+        tokenize(doc.page_content)
         for doc in docs
     ]
 

@@ -1,6 +1,15 @@
 import pickle
+import re
 
 from rank_bm25 import BM25Okapi
+
+
+def tokenize(text):
+
+    return re.findall(
+        r"\b[a-z0-9]+\b",
+        text.lower()
+    )
 
 
 class BM25Retriever:
@@ -19,7 +28,7 @@ class BM25Retriever:
 
     def search(self, question, k=10):
 
-        query_tokens = question.lower().split()
+        query_tokens = tokenize(question)
 
         scores = self.bm25.get_scores(
             query_tokens
@@ -31,7 +40,20 @@ class BM25Retriever:
             key=lambda x: x[0]
         )
 
+        print()
+        print("========== BM25 ==========")
+
+        for score, doc in ranked[:20]:
+            print(
+                round(score, 3),
+                doc.metadata
+            )
+
+        print("==========================")
+        print()
+
         return [
             doc
-            for _, doc in ranked[:k]
+            for score, doc in ranked[:k]
+            if score > 0
         ]
