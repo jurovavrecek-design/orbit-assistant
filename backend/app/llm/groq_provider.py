@@ -1,161 +1,84 @@
-from langchain_groq import ChatGroq
+def rerank(self, question, docs):
 
-from app.llm.base_provider import BaseLLMProvider
+    if not docs:
+        return []
 
+    docs_text = ""
 
-class GroqProvider(BaseLLMProvider):
+    for i, doc in enumerate(docs):
 
-    def __init__(self):
-
-        self.llm = ChatGroq(
-            model="llama-3.3-70b-versatile",
-            temperature=0
+        docs_text += (
+            f"\nDOCUMENT {i}\n"
+            f"{doc.page_content[:1000]}\n"
         )
 
-    def rerank(self, question, docs):
+    response = self.client.chat.completions.create(
+        model=self.model,
+        messages=[
+            {
+                "role": "system",
+                "content":
+                """
+Return only document numbers separated by commas.
 
-        chunks = []
+Example:
+0,2,4
 
-        for i, doc in enumerate(docs):
-
-            text = doc.page_content[:500]
-
-            chunks.append(
-                f"""
-Chunk {i}
-
-Source:
-{doc.metadata.get("source")}
-
-Content:
-{text}
-
+If nothing is relevant return NONE.
 """
-            )
-
-        prompt = f"""
+            },
+            {
+                "role": "user",
+                "content":
+                f"""
 Question:
 
 {question}
-
-Good chunks:
-- directly answer the question
-- contain steps, definitions, or instructions
-
-Bad chunks:
-- module objectives
-- knowledge checks
-- generic introductions
-- unrelated topics
-
-Select ONLY chunks that directly answer the question.
-
-Ignore generic modules, objectives and unrelated topics.
-
-Return ONLY chunk numbers separated by commas.
-
-Examples:
-
-Question:
-How to create a report?
-
-Good chunk:
-Create Report
-Add Report Filters
-
-Bad chunks:
-Task Management
-Time Allocation
-Medical Interaction
-
-If only one chunk is relevant, return one number.
-
-If no chunk answers the question, return NONE.
 
 Documents:
 
-{"".join(chunks)}
+{docs_text}
 """
+            }
+        ],
+        temperature=0
+    )
 
-        response = self.llm.invoke(prompt)
+    result = (
+        response.choices[0]
+        .message.content
+        .strip()
+    )
 
-        response_text = response.content.strip()
+    print()
+    print("========== RERANK RESPONSE ==========")
+    print(result)
+    print("====================================")
 
-        print()
-        print("========== RERANK RESPONSE ==========")
-        print(response_text)
-        print("====================================")
-        print()
+    if "NONE" in result.upper():
+        return docs[:5]
 
-        if response_text.upper() == "NONE":
-            return []
+    try:
 
-        try:
-
-            indexes = [
-                int(x.strip())
-                for x in response_text.split(",")
-            ]
-
-        except:
-
-            indexes = list(range(3))
-
-        return [
-            docs[i]
-            for i in indexes
-            if i < len(docs)
+        indexes = [
+            int(x.strip())
+            for x in result.split(",")
         ]
 
-    def build_prompt(self, question, context):
+        reranked_docs = []
 
-        return f"""
-You are ORBIT Assistant.
+        for i in indexes:
 
-Use ONLY information contained in the documentation.
+            if 0 <= i < len(docs):
+                reranked_docs.append(
+                    docs[i]
+                )
 
-Do not infer business processes.
+        if reranked_docs:
+            return reranked_docs
 
-Do not use general knowledge.
+        return docs[:5]
 
-If the answer is not present in the documentation, explicitly say:
+    except Exception:
 
-"The documentation does not contain the answer."
-
-Answer in the same language as the question.
-
-Use concise bullet points.
-
-Documentation:
-
-{context}
-
-Question:
-
-{question}
-"""
-
-    def ask(self, question, context=""):
-
-        prompt = self.build_prompt(
-            question,
-            context
-        )
-
-        response = self.llm.invoke(
-            prompt
-        )
-
-        return response.content
-
-    def stream_answer(self, question, context=""):
-
-        prompt = self.build_prompt(
-            question,
-            context
-        )
-
-        for chunk in self.llm.stream(prompt):
-
-            if chunk.content:
-                yield chunk.content
+        return docs[:5]

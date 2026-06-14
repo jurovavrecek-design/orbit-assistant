@@ -11,31 +11,44 @@ class ChatService:
 
     def retrieve_docs(self, question):
 
-        docs = self.retriever.search(
+        bm25_docs = self.retriever.search(
             question
         )
 
-        docs = self.llm.rerank(
+        print()
+        print("========== BM25 ==========")
+
+        for doc in bm25_docs[:10]:
+            print(doc.metadata)
+
+        print("==========================")
+
+        reranked_docs = self.llm.rerank(
             question,
-            docs
+            bm25_docs
         )
+
+        if reranked_docs:
+            docs = reranked_docs
+        else:
+            docs = bm25_docs[:5]
 
         print()
         print("========== FINAL RETRIEVED ==========")
 
-        if len(docs) == 0:
-
-            print("No relevant documents found.")
-
-        else:
-
+        if docs:
             for doc in docs:
 
                 print(doc.metadata)
 
-                print(doc.page_content[:500])
+                print(
+                    doc.page_content[:500]
+                )
 
                 print("--------------------------------")
+
+        else:
+            print("No relevant documents found.")
 
         print("==============================")
         print()
@@ -43,9 +56,6 @@ class ChatService:
         return docs
 
     def build_context(self, docs):
-
-        if len(docs) == 0:
-            return ""
 
         return "\n\n".join(
             doc.page_content
@@ -57,13 +67,6 @@ class ChatService:
         docs = self.retrieve_docs(
             question
         )
-
-        if len(docs) == 0:
-
-            return {
-                "answer": "The documentation does not contain the answer.",
-                "sources": []
-            }
 
         context = self.build_context(
             docs
@@ -82,10 +85,11 @@ class ChatService:
             source = doc.metadata["source"]
 
             if "slide" in doc.metadata:
-                source += f" (slide {doc.metadata['slide']})"
+                source += (
+                    f" (slide {doc.metadata['slide']})"
+                )
 
             if source not in seen:
-
                 seen.add(source)
                 sources.append(source)
 
@@ -100,17 +104,12 @@ class ChatService:
             question
         )
 
-        if len(docs) == 0:
-
-            yield "The documentation does not contain the answer."
-            return
-
         context = self.build_context(
             docs
         )
 
         for chunk in self.llm.stream_answer(
-                question,
-                context
+            question,
+            context
         ):
             yield chunk
