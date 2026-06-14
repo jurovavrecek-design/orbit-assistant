@@ -33,6 +33,9 @@ Rules:
 - Do not use general knowledge unless absolutely necessary.
 - Only if the context is completely unrelated to the question, state that no relevant ORBIT documentation was found.
 - Never invent field names, IDs, dates or business processes.
+- Ignore quiz answers and multiple choice options.
+- Use factual statements only.
+- Do not infer information from incorrect answers in knowledge checks.
 
 CONTEXT:
 

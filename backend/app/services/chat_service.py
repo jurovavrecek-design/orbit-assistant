@@ -33,10 +33,23 @@ class ChatService:
 
     def build_context(self, docs):
 
-        return "\n\n".join(
-            doc.page_content
-            for doc in docs
-        )
+        context = ""
+
+        for i, doc in enumerate(docs, start=1):
+
+            context += f"""
+    DOCUMENT {i}
+
+    SOURCE:
+    {doc.metadata['source']}
+
+    CONTENT:
+    {doc.page_content}
+
+    ------------------------
+    """
+
+        return context
 
     def ask(self, question):
 
