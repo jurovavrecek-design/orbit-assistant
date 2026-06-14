@@ -1,5 +1,6 @@
 from app.llm.groq_provider import GroqProvider
 from app.retriever.bm25_retriever import BM25Retriever
+from app.reranker.reranker import Reranker
 
 
 class ChatService:
@@ -8,11 +9,19 @@ class ChatService:
 
         self.llm = GroqProvider()
         self.retriever = BM25Retriever()
+        self.reranker = Reranker()
 
     def retrieve_docs(self, question):
 
         docs = self.retriever.search(
-            question
+            question,
+            k=50
+        )
+
+        docs = self.reranker.rerank(
+            question,
+            docs,
+            top_k=8
         )
 
         print()
@@ -24,9 +33,7 @@ class ChatService:
         for doc in docs:
 
             print(doc.metadata)
-
             print(doc.page_content[:500])
-
             print("--------------------------------")
 
         print("==============================")
@@ -43,13 +50,9 @@ class ChatService:
 
     def ask(self, question):
 
-        docs = self.retrieve_docs(
-            question
-        )
+        docs = self.retrieve_docs(question)
 
-        context = self.build_context(
-            docs
-        )
+        context = self.build_context(docs)
 
         answer = self.llm.ask(
             question,
@@ -77,16 +80,12 @@ class ChatService:
 
     def stream(self, question):
 
-        docs = self.retrieve_docs(
-            question
-        )
+        docs = self.retrieve_docs(question)
 
-        context = self.build_context(
-            docs
-        )
+        context = self.build_context(docs)
 
         for chunk in self.llm.stream_answer(
-                question,
-                context
+            question,
+            context
         ):
             yield chunk

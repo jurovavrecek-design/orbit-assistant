@@ -29,9 +29,6 @@ class DocumentIngestor:
 
             for file in Path(folder).glob("*"):
 
-                #
-                # Skip hidden and temporary Office files
-                #
                 if file.name.startswith(".") or file.name.startswith("~$"):
                     continue
 
@@ -93,16 +90,11 @@ class DocumentIngestor:
 
                             slide_title = ""
 
-                            #
-                            # first shape is usually title
-                            #
                             try:
-
                                 if (
                                     len(slide.shapes) > 0
                                     and hasattr(slide.shapes[0], "text")
                                 ):
-
                                     slide_title = slide.shapes[0].text.strip()
 
                             except:
@@ -117,8 +109,18 @@ class DocumentIngestor:
                                     txt = shape.text.strip()
 
                                     if txt:
-
                                         slide_text += txt + "\n"
+
+                            lower_slide = slide_text.lower()
+
+                            skip_keywords = [
+                                "module objectives",
+                                "knowledge check",
+                                "exercise"
+                            ]
+
+                            if any(keyword in lower_slide for keyword in skip_keywords):
+                                continue
 
                             if slide_text.strip():
 
@@ -137,9 +139,6 @@ class DocumentIngestor:
 
                         continue
 
-                    #
-                    # TXT / CLS / MD
-                    #
                     text = file.read_text(errors="ignore")
 
                     docs.append(
@@ -158,9 +157,6 @@ class DocumentIngestor:
 
                     print(f"Failed {file.name}: {e}")
 
-        #
-        # Split only non-PPTX docs
-        #
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=1500,
             chunk_overlap=300
@@ -170,25 +166,16 @@ class DocumentIngestor:
 
         for doc in docs:
 
-            #
-            # Keep PPT slides intact
-            #
             if doc.metadata.get("type") == "pptx":
 
                 final_docs.append(doc)
 
-            #
-            # Split other document types
-            #
             else:
 
                 chunks = splitter.split_documents([doc])
 
                 final_docs.extend(chunks)
 
-        #
-        # Add chunk ids
-        #
         for i, chunk in enumerate(final_docs):
 
             chunk.metadata["chunk"] = i
