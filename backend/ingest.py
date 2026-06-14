@@ -1,5 +1,6 @@
+import pickle
+
 from app.ingest.document_ingestor import DocumentIngestor
-from app.vectorstore.chroma_store import ChromaStore
 
 
 def main():
@@ -20,17 +21,26 @@ def main():
         print("No documents found.")
         return
 
-    print("\nInitializing ChromaDB...")
+    print("\nTokenizing documents...")
 
-    store = ChromaStore()
+    tokenized_docs = [
+        doc.page_content.lower().split()
+        for doc in docs
+    ]
 
-    print("Adding documents to vector store...")
+    print("Saving BM25 index...")
 
-    store.add_documents(docs)
+    with open("bm25.pkl", "wb") as f:
 
-    print("Building hybrid retriever...")
+        pickle.dump(
+            {
+                "documents": docs,
+                "tokenized_docs": tokenized_docs
+            },
+            f
+        )
 
-    print("\nDocuments indexed successfully!")
+    print("\nBM25 index created successfully!")
     print("\nDone.")
 
 

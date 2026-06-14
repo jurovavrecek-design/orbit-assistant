@@ -1,17 +1,17 @@
-from app.llm.ollama_provider import OllamaProvider
-from app.vectorstore.chroma_store import ChromaStore
+from app.llm.groq_provider import GroqProvider
+from app.retriever.bm25_retriever import BM25Retriever
 
 
 class ChatService:
 
     def __init__(self):
 
-        self.llm = OllamaProvider()
-        self.store = ChromaStore()
+        self.llm = GroqProvider()
+        self.retriever = BM25Retriever()
 
     def retrieve_docs(self, question):
 
-        docs = self.store.similarity_search(
+        docs = self.retriever.search(
             question
         )
 
@@ -79,7 +79,7 @@ class ChatService:
         )
 
         for chunk in self.llm.stream_answer(
-                question,
-                context
+            question,
+            context
         ):
             yield chunk
