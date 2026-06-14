@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+
+.env
+
+chroma_db/
+
+.DS_Store
+
+.vscode/
+
+Archive.zip
+
+backend/docs/pptx/EU Template_TTT_UCB_CLRM_Train-the-Trainer.pptx
+backend/docs/pptx/LATAM Template_TTT_UCB_CLRM_Train-the-Trainer.pptx
