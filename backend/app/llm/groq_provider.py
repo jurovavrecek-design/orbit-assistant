@@ -17,56 +17,55 @@ class GroqProvider(BaseLLMProvider):
         return f"""
 You are ORBIT Assistant.
 
-Use the supplied documentation as the primary source.
+The CONTEXT below contains excerpts from ORBIT documentation.
 
-If the answer exists in the documentation:
+Your task is to answer using ONLY the supplied context.
 
-- answer from documentation
-- summarize information
-- use bullet points
+Rules:
 
-If the answer is only partially found:
+- Never say "No exact documentation was found" if the context contains relevant information.
+- Summarize information found in the context.
+- Do not look for explicit definitions.
+- Infer meaning from the available documentation.
+- Combine information from multiple pages when necessary.
+- Use bullet points.
+- Answer in the same language as the question.
+- Do not use general knowledge unless absolutely necessary.
+- Only if the context is completely unrelated to the question, state that no relevant ORBIT documentation was found.
+- Never invent field names, IDs, dates or business processes.
 
-- combine documentation and general knowledge
-- clearly distinguish documented information from general knowledge
-
-If the answer is not found:
-
-- explicitly say that no exact ORBIT documentation was found
-- answer using general knowledge
-
-Never invent:
-
-- IDs
-- field names
-- dates
-- business processes
-
-Answer in the same language as the question.
-
-Use markdown formatting.
-
-Context:
+CONTEXT:
 
 {context}
 
-Question:
+QUESTION:
 
 {question}
+
+ANSWER:
 """
 
     def ask(self, question, context=""):
 
+        prompt = self.build_prompt(
+            question,
+            context
+        )
+
         response = self.llm.invoke(
-            self.build_prompt(question, context)
+            prompt
         )
 
         return response.content
 
     def stream_answer(self, question, context=""):
 
-        for chunk in self.llm.stream(
-                self.build_prompt(question, context)
-        ):
+        prompt = self.build_prompt(
+            question,
+            context
+        )
+
+        for chunk in self.llm.stream(prompt):
+
             if chunk.content:
                 yield chunk.content

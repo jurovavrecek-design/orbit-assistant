@@ -48,6 +48,12 @@ class ChatService:
             docs
         )
 
+        print()
+        print("========== CONTEXT ==========")
+        print(context[:5000])
+        print("=============================")
+        print()
+
         answer = self.llm.ask(
             question,
             context
