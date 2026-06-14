@@ -19,7 +19,12 @@ class ChatService:
         print("========== RETRIEVED ==========")
 
         for doc in docs:
+
             print(doc.metadata)
+            print()
+            print(doc.page_content[:1500])
+            print()
+            print("--------------------------------------------")
 
         print("==============================")
         print()
