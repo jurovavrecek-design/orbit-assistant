@@ -11,44 +11,23 @@ class ChatService:
 
     def retrieve_docs(self, question):
 
-        bm25_docs = self.retriever.search(
+        docs = self.retriever.search(
             question
         )
 
         print()
-        print("========== BM25 ==========")
-
-        for doc in bm25_docs[:10]:
-            print(doc.metadata)
-
-        print("==========================")
-
-        reranked_docs = self.llm.rerank(
-            question,
-            bm25_docs
-        )
-
-        if reranked_docs:
-            docs = reranked_docs
-        else:
-            docs = bm25_docs[:5]
-
-        print()
         print("========== FINAL RETRIEVED ==========")
 
-        if docs:
-            for doc in docs:
-
-                print(doc.metadata)
-
-                print(
-                    doc.page_content[:500]
-                )
-
-                print("--------------------------------")
-
-        else:
+        if not docs:
             print("No relevant documents found.")
+
+        for doc in docs:
+
+            print(doc.metadata)
+
+            print(doc.page_content[:500])
+
+            print("--------------------------------")
 
         print("==============================")
         print()
@@ -85,9 +64,7 @@ class ChatService:
             source = doc.metadata["source"]
 
             if "slide" in doc.metadata:
-                source += (
-                    f" (slide {doc.metadata['slide']})"
-                )
+                source += f" (slide {doc.metadata['slide']})"
 
             if source not in seen:
                 seen.add(source)
@@ -109,7 +86,7 @@ class ChatService:
         )
 
         for chunk in self.llm.stream_answer(
-            question,
-            context
+                question,
+                context
         ):
             yield chunk
