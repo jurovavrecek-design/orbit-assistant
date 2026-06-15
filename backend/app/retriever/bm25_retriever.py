@@ -26,12 +26,12 @@ class BM25Retriever:
             self.tokenized_docs
         )
 
-    def search(self, question, k=50):
+    def search(self, question, k=5):
 
         q = question.lower()
 
         #
-        # query expansion
+        # Query expansion
         #
 
         synonyms = {
@@ -40,7 +40,10 @@ class BM25Retriever:
             "log call": "record call",
             "create account": "new account",
             "anf": "service provider",
-            "edetail": "edetailing"
+            "edetail": "edetailing",
+            "clm": "edetailing",
+            "meeting": "event",
+            "survey": "survey target"
         }
 
         for key, value in synonyms.items():
@@ -53,6 +56,10 @@ class BM25Retriever:
 
         query_tokens = tokenize(q)
 
+        #
+        # BM25 scores
+        #
+
         scores = self.bm25.get_scores(
             query_tokens
         )
@@ -63,17 +70,100 @@ class BM25Retriever:
             key=lambda x: x[0]
         )
 
+        #
+        # Rule-based rerank
+        #
+
+        boosted = []
+
+        skip_keywords = [
+            "module objectives",
+            "knowledge check",
+            "exercise",
+            "understand",
+            "be able to"
+        ]
+
+        for score, doc in ranked:
+
+            text = doc.page_content.lower()
+
+            title = (
+                doc.metadata
+                .get("title", "")
+                .lower()
+            )
+
+            #
+            # Skip generic training slides
+            #
+
+            if any(
+                keyword in text
+                for keyword in skip_keywords
+            ):
+                continue
+
+            bonus = 0
+
+            #
+            # Exact token matches
+            #
+
+            for token in query_tokens:
+
+                if token in text:
+                    bonus += 0.4
+
+            #
+            # Strong title bonus
+            #
+
+            for token in query_tokens:
+
+                if token in title:
+                    bonus += 2
+
+            #
+            # Prefer PPT
+            #
+
+            if doc.metadata.get("type") == "pptx":
+                bonus += 1
+
+            #
+            # Slightly penalize PDF
+            #
+
+            if doc.metadata.get("type") == "pdf":
+                bonus -= 1
+
+            boosted.append(
+                (
+                    score + bonus,
+                    doc
+                )
+            )
+
+        boosted.sort(
+            reverse=True,
+            key=lambda x: x[0]
+        )
+
         print()
         print("========== BM25 ==========")
 
-        for score, doc in ranked[:20]:
+        for score, doc in boosted[:20]:
 
-            print(round(score, 2), doc.metadata)
+            print(
+                round(score, 2),
+                doc.metadata
+            )
 
         print("==========================")
         print()
 
         return [
             doc
-            for _, doc in ranked[:k]
+            for _, doc in boosted[:k]
         ]

@@ -22,6 +22,12 @@ class DocumentIngestor:
             "docs/pptx"
         ]
 
+        skip_keywords = [
+            "module objectives",
+            "knowledge check",
+            "exercise"
+        ]
+
         for folder in folders:
 
             if not Path(folder).exists():
@@ -29,9 +35,6 @@ class DocumentIngestor:
 
             for file in Path(folder).glob("*"):
 
-                #
-                # skip hidden / temp files
-                #
                 if file.name.startswith(".") or file.name.startswith("~$"):
                     continue
 
@@ -49,6 +52,7 @@ class DocumentIngestor:
 
                             doc.metadata["source"] = file.name
                             doc.metadata["type"] = "pdf"
+                            doc.metadata["title"] = ""
 
                         docs.extend(pdf_docs)
 
@@ -73,7 +77,8 @@ class DocumentIngestor:
                                 page_content=text,
                                 metadata={
                                     "source": file.name,
-                                    "type": "docx"
+                                    "type": "docx",
+                                    "title": ""
                                 }
                             )
                         )
@@ -99,12 +104,18 @@ class DocumentIngestor:
                                     len(slide.shapes) > 0
                                     and hasattr(slide.shapes[0], "text")
                                 ):
-                                    slide_title = slide.shapes[0].text.strip()
+                                    slide_title = (
+                                        slide.shapes[0]
+                                        .text
+                                        .strip()
+                                    )
 
                             except:
                                 pass
 
-                            slide_text = f"SLIDE TITLE: {slide_title}\n\n"
+                            slide_text = (
+                                f"SLIDE TITLE: {slide_title}\n\n"
+                            )
 
                             for shape in slide.shapes:
 
@@ -115,26 +126,21 @@ class DocumentIngestor:
                                     if txt:
                                         slide_text += txt + "\n"
 
-                            #
-                            # Skip useless training slides
-                            #
                             lower_slide = slide_text.lower()
 
-                            skip_keywords = [
-                                "module objectives",
-                                "knowledge check",
-                                "exercise",
-                                "understand",
-                                "be able to"
-                            ]
-
-                            if any(keyword in lower_slide for keyword in skip_keywords):
+                            #
+                            # Skip generic slides
+                            #
+                            if any(
+                                keyword in lower_slide
+                                for keyword in skip_keywords
+                            ):
                                 continue
 
                             #
-                            # skip slides that are too short
+                            # Skip very small slides
                             #
-                            if len(slide_text.strip()) < 80:
+                            if len(slide_text.strip()) < 100:
                                 continue
 
                             docs.append(
@@ -143,7 +149,8 @@ class DocumentIngestor:
                                     metadata={
                                         "source": file.name,
                                         "type": "pptx",
-                                        "slide": slide_number
+                                        "slide": slide_number,
+                                        "title": slide_title
                                     }
                                 )
                             )
@@ -162,7 +169,8 @@ class DocumentIngestor:
                             page_content=text,
                             metadata={
                                 "source": file.name,
-                                "type": file.suffix.lower()
+                                "type": file.suffix.lower(),
+                                "title": ""
                             }
                         )
                     )
@@ -174,7 +182,7 @@ class DocumentIngestor:
                     print(f"Failed {file.name}: {e}")
 
         #
-        # split non-PPT docs
+        # Split non-PPT documents
         #
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=1500,
@@ -185,9 +193,6 @@ class DocumentIngestor:
 
         for doc in docs:
 
-            #
-            # keep PPT slides intact
-            #
             if doc.metadata.get("type") == "pptx":
 
                 final_docs.append(doc)
@@ -196,10 +201,16 @@ class DocumentIngestor:
 
                 chunks = splitter.split_documents([doc])
 
+                for chunk in chunks:
+
+                    chunk.metadata["title"] = (
+                        doc.metadata.get("title", "")
+                    )
+
                 final_docs.extend(chunks)
 
         #
-        # add chunk ids
+        # Add chunk ids
         #
         for i, chunk in enumerate(final_docs):
 

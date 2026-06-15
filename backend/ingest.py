@@ -32,10 +32,26 @@ def main():
 
     print("\nTokenizing documents...")
 
-    tokenized_docs = [
-        tokenize(doc.page_content)
-        for doc in docs
-    ]
+    tokenized_docs = []
+
+    for doc in docs:
+
+        title = doc.metadata.get(
+            "title",
+            ""
+        )
+
+        #
+        # Index title + content
+        #
+        text = (
+            title + "\n" +
+            doc.page_content
+        )
+
+        tokenized_docs.append(
+            tokenize(text)
+        )
 
     print("Saving BM25 index...")
 

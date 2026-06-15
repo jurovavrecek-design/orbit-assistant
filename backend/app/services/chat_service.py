@@ -12,22 +12,36 @@ class ChatService:
     def retrieve_docs(self, question):
 
         #
-        # BM25
+        # BM25 + rule-based rerank
         #
 
         docs = self.retriever.search(
             question,
-            k=50
+            k=10
         )
 
         #
-        # LLM rerank
+        # Remove duplicates (EU/LATAM slides etc.)
         #
 
-        docs = self.llm.rerank(
-            question,
-            docs
-        )
+        unique_docs = []
+        seen = set()
+
+        for doc in docs:
+
+            text_key = doc.page_content[:300]
+
+            if text_key in seen:
+                continue
+
+            seen.add(text_key)
+            unique_docs.append(doc)
+
+        #
+        # Keep only best docs
+        #
+
+        docs = unique_docs[:5]
 
         print()
         print("========== FINAL RETRIEVED ==========")
@@ -37,10 +51,15 @@ class ChatService:
 
         for doc in docs:
 
-            print(doc.metadata)
+            source = doc.metadata["source"]
 
-            print(doc.page_content[:500])
+            if "slide" in doc.metadata:
+                source += f" slide {doc.metadata['slide']}"
 
+            elif "page" in doc.metadata:
+                source += f" page {doc.metadata['page'] + 1}"
+
+            print(source)
             print("--------------------------------")
 
         print("==============================")
@@ -50,9 +69,30 @@ class ChatService:
 
     def build_context(self, docs):
 
-        return "\n\n".join(
-            doc.page_content
-            for doc in docs
+        sections = []
+
+        for doc in docs:
+
+            header = doc.metadata["source"]
+
+            if "slide" in doc.metadata:
+                header += f" slide {doc.metadata['slide']}"
+
+            elif "page" in doc.metadata:
+                header += f" page {doc.metadata['page'] + 1}"
+
+            sections.append(
+                f"""
+SOURCE:
+{header}
+
+CONTENT:
+{doc.page_content}
+"""
+            )
+
+        return "\n\n--------------------------------\n\n".join(
+            sections
         )
 
     def ask(self, question):
@@ -78,7 +118,14 @@ class ChatService:
             source = doc.metadata["source"]
 
             if "slide" in doc.metadata:
-                source += f" (slide {doc.metadata['slide']})"
+                source += (
+                    f" (slide {doc.metadata['slide']})"
+                )
+
+            elif "page" in doc.metadata:
+                source += (
+                    f" (page {doc.metadata['page'] + 1})"
+                )
 
             if source not in seen:
                 seen.add(source)
@@ -100,7 +147,7 @@ class ChatService:
         )
 
         for chunk in self.llm.stream_answer(
-                question,
-                context
+            question,
+            context
         ):
             yield chunk
