@@ -1,3 +1,0 @@
-Duplicate Suggestion Feedback records are removed by UCB_SuggestionFeedbackDeduplicator.
-The highest priority feedback is retained.
-Survey Targets are cleaned afterwards.
